@@ -17,14 +17,6 @@ const STATUS_USER_ERROR = 422;
 const STATUS_SERVER_ERROR = 500;
 
 const app = express();
-const dev = app.get('env') !== 'production';
-if(!dev) {
-  app.disable('x-powered-by');
-  app.use(express.static(path.resolve(__dirname, 'build')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'build', 'index.html'))
-  })
-}
 app.use(cors());
 app.use(bodyParser.json());
 
