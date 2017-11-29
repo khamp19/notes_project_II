@@ -5,8 +5,7 @@ const bodyParser = require('body-parser');
 const Note = require('./notes');
 const path = require('path');
 
-const normalizePort = port => parseInt(port, 10);
-const PORT = normalizePort(process.env.PORT || 8080);
+const PORT = process.env.PORT || 8080;
 
 const uri = 'mongodb://testing:test123@ds113785.mlab.com:13785/notes-project-db';
 const options = {
@@ -49,7 +48,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.listen(8080, () => {
+app.listen(PORT, () => {
   console.log('Server listening');
 });
 
