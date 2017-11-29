@@ -5,13 +5,14 @@ const bodyParser = require('body-parser');
 const Note = require('./notes');
 const path = require('path');
 
+const normalizePort = port => parseInt(port, 10);
 const PORT = normalizePort(process.env.PORT || 8080);
 
-mongoose.Promise = global.Promise;
-const connect = mongoose.connect(
-  'mongodb://localhost/notes',
-  { useMongoClient: true }
-); //replace this link with one from mLabs
+const uri = 'mongodb://testing:test123@ds113785.mlab.com:13785/notes-project-db';
+const options = {
+  useMongoClient: true
+};
+mongoose.connect(uri, options);
 
 const STATUS_USER_ERROR = 422;
 const STATUS_SERVER_ERROR = 500;
