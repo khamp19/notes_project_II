@@ -53,6 +53,10 @@ app.get('/', (req, res) => {
 // create new note
 app.post('/notes', (req, res) => {
   const { title, content, created_at } = req.body;
+  if (!title) {
+    res.sendUserError('Note must have a title');
+    return;
+  }
   if (!content) {
     res.sendUserError('Please add content to your note');
     return;
