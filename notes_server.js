@@ -1,29 +1,31 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const Note = require('./notes');
 const path = require('path');
+const { makeToken, verifyToken } = require('./AuthFns');
+const User = require('./users');
+const bcrypt = require('bcrypt');
+require('dotenv').config();
+
 
 const PORT = process.env.PORT || 8080;
+const MONGO_URI = 'mongodb://testing:test123@ds113785.mlab.com:13785/notes-project-db'
+// process.env.MONGO_URI;
 
-const uri = 'mongodb://testing:test123@ds113785.mlab.com:13785/notes-project-db';
-const options = {
-  useMongoClient: true
-};
-mongoose.connect(uri, options);
+mongoose.connect(MONGO_URI, { useMongoClient: true });
 
 const STATUS_USER_ERROR = 422;
 const STATUS_SERVER_ERROR = 500;
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 
 // handle errors
 app.use((req, res, next) => {
   res.sendUserError = function (err) {
-    const userError = typeof err ==='string' ? { error: err } : err;
+    const userError = typeof err === 'string' ? { error: err } : err;
     this.status(STATUS_USER_ERROR);
     this.json(userError);
   };
@@ -45,13 +47,72 @@ app.listen(PORT, () => {
 });
 
 // handle welcome/ home page
-// this will be the login/ create page
+// this can be deleted
 app.get('/', (req, res) => {
   res.json('hello world!');
 });
 
-// create new note
-app.post('/notes', (req, res) => {
+//----------------------------------------User Related Requests-------------------------------------------//
+//create user- register
+app.post('/user/register', (req, res) => {
+  const newUser = new User(req.body);
+  newUser.save((err, user) => {
+    if (err) return res.sendSystemError('could not save user');
+    const token = makeToken(user);
+    const username = user.username;
+    return res.status(200).json({ username, token });
+  })
+})
+
+//log user in
+app.put('/user/login', (req, res) => {
+  const { username, password } = req.body;
+  User.findOne({ username })
+    .then(user => {
+      user.comparePass(password)
+        .then(isMatch => {
+          if (isMatch) {
+            const token = makeToken(user);
+            res.status(200).json({ username, token })
+          } else {
+            res.status(401).json({ msg: 'login failed' })
+          }
+        })
+        .catch(err => res.status(401).json({ msg: 'passwords do not match' }))
+    })
+    .catch(err => res.status(401).json({ msg: 'user not found' }));
+})
+
+//user dashboard- see '/self' notes
+//should return the notes of this user
+app.get('/user/dashboard', verifyToken, (req, res) => {
+  const { jwtPayload } = req;
+  User.findById(jwtPayload.sub)
+    .then(user => {
+      //should return the notes of this user
+      // const username = user.username;
+      // const userNotes = user.notes;
+      const { username, notes } = user;
+      res.status(200).json({ username, notes })
+    })
+    .catch(err => res.sendSystemError('cannot get user'))
+})
+
+//delete user
+app.delete('/user/delete-account', verifyToken, (req, res) => {
+  const { jwtPayload } = req;
+  User.findByIdAndRemove(jwtPayload.sub)
+    .then(user => {
+      const { username } = user;
+      res.status(200, 'user successfully removed').json(username);
+    })
+    .catch(err => res.sendSystemError('cannot remove user'));
+})
+
+//----------------------------------------Notes Related Requests-------------------------------------------//
+// create new note- req authentication
+// add username to post 
+app.post('/notes', verifyToken, (req, res) => {
   const { title, content, created_at } = req.body;
   if (!title) {
     res.sendUserError('Note must have a title');
@@ -63,7 +124,7 @@ app.post('/notes', (req, res) => {
   }
   const newNote = new Note(req.body);
   newNote.save((err, newNote) => {
-    if(err) res.sendSystemError('Could not save note');
+    if (err) res.sendSystemError('Could not save note');
     res.status(200).json(newNote);
   });
 });
@@ -71,7 +132,7 @@ app.post('/notes', (req, res) => {
 // retrieve all notes
 app.get('/notes', (req, res) => {
   Note.find({}, (err, notes) => {
-    if(err) res.sendSystemError('Cannot get notes');
+    if (err) res.sendSystemError('Cannot get notes');
     res.json(notes);
   });
 });
@@ -80,8 +141,8 @@ app.get('/notes', (req, res) => {
 app.get('/notes/:id', (req, res) => {
   const id = req.params.id;
   Note.findById(req.params.id, (err, note) => {
-    if(err) res.sendSystemError(err);
-    if(!id) {
+    if (err) res.sendSystemError(err);
+    if (!id) {
       res.sendUserError('Note not found');
       return;
     }
@@ -90,11 +151,12 @@ app.get('/notes/:id', (req, res) => {
 });
 
 // update note- find, edit, save
-app.put('/notes/:id', (req, res) => {
+// req authentication
+app.put('/notes/:id', verifyToken, (req, res) => {
   const id = req.params.id;
   Note.findById(req.params.id, (err, note) => {
-    if(err) res.sendSystemError(err);
-    if(!id) {
+    if (err) res.sendSystemError(err);
+    if (!id) {
       res.sendUserError('Note not found');
       return;
     }
@@ -103,21 +165,22 @@ app.put('/notes/:id', (req, res) => {
     note.content = req.body.content;
     // save the note
     note.save((err, note) => {
-      if(err) res.sendSystemError(err);
+      if (err) res.sendSystemError(err);
       res.json(note);
     });
   });
 });
 
 //delete note- find and delete
-app.delete('/notes/:id', (req, res) => {
+//req authentication
+app.delete('/notes/:id', verifyToken, (req, res) => {
   const id = req.params.id;
   Note.findByIdAndRemove(req.params.id, (err, note) => {
-    if(err) return res.sendSystemError(err);
-    if(!id) {
+    if (err) return res.sendSystemError(err);
+    if (!id) {
       res.sendUserError('Note not found');
       return;
     }
-    res.json({ success: true, message: 'note successfully deleted'});
+    res.json({ success: true, message: 'note successfully deleted' });
   });
 });
