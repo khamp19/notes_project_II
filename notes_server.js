@@ -10,8 +10,7 @@ require('dotenv').config();
 
 
 const PORT = process.env.PORT || 8080;
-const MONGO_URI = 'mongodb://testing:test123@ds113785.mlab.com:13785/notes-project-db'
-// process.env.MONGO_URI;
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI, { useMongoClient: true });
 
