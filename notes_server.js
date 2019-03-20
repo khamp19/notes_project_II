@@ -112,7 +112,7 @@ app.delete('/user/delete-account', verifyToken, (req, res) => {
 // create new note- req authentication
 // add username to post 
 app.post('/notes', verifyToken, (req, res) => {
-  const { title, content, created_at } = req.body;
+  const { title, content, created_at, username } = req.body;
   if (!title) {
     res.sendUserError('Note must have a title');
     return;
