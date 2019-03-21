@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  notes: []
+  userNotes: []
 });
 
 //hash pws

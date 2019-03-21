@@ -91,8 +91,8 @@ app.get('/user/dashboard', verifyToken, (req, res) => {
       //should return the notes of this user
       // const username = user.username;
       // const userNotes = user.notes;
-      const { username, notes } = user;
-      res.status(200).json({ username, notes })
+      const { username, userNotes } = user;
+      res.status(200).json({ username, userNotes })
     })
     .catch(err => res.sendSystemError('cannot get user'))
 })
@@ -172,14 +172,15 @@ app.put('/notes/:id', verifyToken, (req, res) => {
 
 //delete note- find and delete
 //req authentication
+//------------------TEST ME----------------//
 app.delete('/notes/:id', verifyToken, (req, res) => {
   const id = req.params.id;
-  Note.findByIdAndRemove(req.params.id, (err, note) => {
+  Note.findByIdAndRemove(id, (err, note) => {
     if (err) return res.sendSystemError(err);
     if (!id) {
       res.sendUserError('Note not found');
       return;
     }
-    res.json({ success: true, message: 'note successfully deleted' });
+    res.json({ success: true, message: 'note successfully deleted', note });
   });
 });
