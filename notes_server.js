@@ -153,7 +153,7 @@ app.get('/notes/:id', (req, res) => {
 // req authentication
 app.put('/notes/:id', verifyToken, (req, res) => {
   const id = req.params.id;
-  Note.findById(req.params.id, (err, note) => {
+  Note.findById(id, (err, note) => {
     if (err) res.sendSystemError(err);
     if (!id) {
       res.sendUserError('Note not found');
